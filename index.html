@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coffee Roasting Log — Auto Render (A4 Printable)</title>
+
+  <!-- Chart.js CDN (benar) -->
+  https://cdn.jsdelivr.net/npm/chart.js</script>
+
+  <style>
+    :root{
+      --bg:#f7f7f7; --card:#ffffff; --ink:#1f2937; --muted:#6b7280; --accent:#0f766e; --border:#e5e7eb;
+    }
+    /* ====== Base ====== */
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;}
+    .container{max-width:960px;margin:18px auto;padding:0 16px;}
+    h1{margin:0 0 6px 0;font-size:24px;font-weight:800;letter-spacing:.2px;}
+    .subtitle{color:var(--muted);margin-bottom:14px;}
+    .section-title{margin:0 0 10px 0;font-size:16px;font-weight:800;}
+    .card{
+      background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:12px 16px;}
+    @media (max-width:740px){ .grid{grid-template-columns:1fr;} }
+
+    label{font-weight:700;font-size:12px;display:inline-block;margin-bottom:6px;color:#374151;}
+    input[type="text"],input[type="number"],select{
+      width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;box-sizing:border-box;
+      font-size:14px;outline:none;
+    }
+    input[readonly]{background:#f3f4f6;color:#6b7280;}
+    .helper{font-size:12px;color:#6b7280;margin-top:4px;}
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .row .spacer{flex:1 1 auto;}
+    .btn{appearance:none;border:none;border-radius:8px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer;}
+    .btn.secondary{background:#374151;}
+    .btn.ghost{background:transparent;color:#374151;border:1px dashed #cbd5e1;}
+    .legend-box{display:inline-flex;align-items:center;gap:6px;margin-right:12px;font-size:12px;}
+    .square{width:12px;height:12px;border-radius:2px;display:inline-block;}
+    .sq-red{background:#dc2626;} .sq-yellow{background:#f59e0b;} .sq-green{background:#16a34a;} .sq-blue{background:#2563eb;}
+
+    /* Tabel suhu */
+    table.temps{width:100%;border-collapse:collapse;}
+    .temps th,.temps td{border:1px solid var(--border);padding:8px;text-align:center;font-size:13px;}
+    .temps th{background:#f3f4f6;font-weight:800;color:#374151;}
+
+    /* Grafik */
+    .chart-card{padding:12px;}
+    .chart-wrap{position:relative;height:300px; /* 🔽 lebih kecil agar tidak terlalu besar di layar */ }
+    canvas{display:block;}
+
+    /* Status peringatan */
+    .status{display:none;margin-top:8px;font-size:12px;color:#92400e;background:#fff7ed;border:1px solid #f59e0b;padding:8px 10px;border-radius:8px;}
+    .status.show{display:block;}
+
+    /* ====== PRINT (A4) ====== */
+    @page{ size:A4 portrait; margin:12mm; }
+    @media print{
+      body{background:#fff;color:#000;}
+      .container{max-width:none;margin:0;padding:0;}
+      .card{box-shadow:none;border:1px solid #cbd5e1;border-radius:8px;padding:10mm;page-break-inside:avoid;}
+      .actions,.status-btns,.status{display:none !important;} /* Sembunyikan tombol & panel status saat cetak */
+      h1{font-size:18pt;margin-bottom:3mm;}
+      .subtitle{margin-bottom:5mm;}
+      .grid{grid-template-columns:repeat(2,1fr);gap:6mm;}
+      .chart-wrap{height:auto;}
+      /* Ukuran kanvas untuk A4 (pas di lebar halaman dengan margin) */
+      #roastChart{
+        width:18cm !important;  /* ~lebar konten A4 - margin */
+        height:9cm !important;  /* proporsi enak dibaca di cetak */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Coffee Roasting Log</h1>
+    <div class="subtitle">Auto-render • Kurva hitam • Marker kotak berwarna • Siap cetak A4</div>
+
+    <!-- Informasi Umum -->
+    <div class="card">
+      <div class="section-title">Informasi Batch</div>
+      <div class="grid">
+        <div>
+          <label>Tanggal (otomatis)</label>
+          <input id="tanggal" type="text" readonly />
+        </div>
+        <div>
+          <label>Jam (otomatis)</label>
+          <input id="jam" type="text" readonly />
+        </div>
+        <div>
+          <label>Roast Master</label>
+          <input id="roastMaster" type="text" placeholder="Nama penanggung jawab" />
+        </div>
+        <div>
+          <label>Green Bean</label>
+          <input id="greenBean" type="text" placeholder="Origin / Varietas" />
+        </div>
+        <div>
+          <label>Mesin</label>
+          <input id="mesin" type="text" placeholder="Tipe mesin / kapasitas" />
+        </div>
+        <div>
+          <label>Gass Pressure (0–2; step 0.5)</label>
+          <select id="gasPressure">
+            <option value="0">0.0</option>
+            <option value="0.5">0.5</option>
+            <option value="1">1.0</option>
+            <option value="1.5">1.5</option>
+            <option value="2">2.0</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Waktu/Suhu -->
+    <div class="card">
+      <div class="section-title">Event Roasting</div>
+      <div class="grid">
+        <div>
+          <label>Turning Point Temperature (°C)</label>
+          <input id="tpTemp" type="number" min="80" max="250" step="50" placeholder="80 / 130 / 180 / 230 / 250" />
+          <div class="helper">Marker kotak <span class="square sq-red"></span> merah</div>
+        </div>
+        <div>
+          <label>Turning Point Time (otomatis)</label>
+          <input id="tpTimeAuto" type="text" readonly />
+          <div class="helper">Hasil inverse interpolasi dari kurva</div>
+        </div>
+        <div>
+          <label>First Crack Time (menit)</label>
+          <input id="fcTime" type="number" min="0" max="20" step="0.1" placeholder="contoh: 8.0" />
+          <div class="helper">Marker kotak <span class="square sq-yellow"></span> kuning</div>
+        </div>
+        <div>
+          <label>Drop Time (menit)</label>
+          <input id="dropTime" type="number" min="0" max="20" step="0.1" placeholder="contoh: 10.5" />
+          <div class="helper">Marker kotak <span class="square sq-blue"></span> biru</div>
+        </div>
+        <div>
+          <label>Development Time (menit) (otomatis)</label>
+          <input id="devTime" type="text" readonly />
+          <div class="helper">Marker kotak <span class="square sq-green"></span> hijau di posisi Drop</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Suhu -->
+    <div class="card">
+      <div class="section-title">Input Suhu per Menit (0–20)</div>
+      <div class="helper">Skala suhu 80–250°C (step <b>50°C</b>). Kosongkan menit yang tidak dipakai.</div>
+      <table class="temps">
+        <thead>
+          <tr><th>Menit</th><th>Suhu (°C)</th><th>Menit</th><th>Suhu (°C)</th></tr>
+        </thead>
+        <tbody id="tempsBody"></tbody>
+      </table>
+      <div class="row actions" style="margin-top:10px;">
+        <button class="btn secondary" id="resetBtn">Reset Grafik</button>
+        <div class="spacer"></div>
+        <button class="btn ghost" id="printBtn" title="Cetak dalam format A4">Cetak A4</button>
+      </div>
+      <div id="statusMsg" class="status"></div>
+    </div>
+
+    <!-- Grafik -->
+    <div class="card chart-card">
+      <div class="row" style="margin-bottom:6px;">
+        <div class="legend-box"><span class="square sq-red"></span> Turning Point</div>
+        <div class="legend-box"><span class="square sq-yellow"></span> First Crack</div>
+        <div class="legend-box"><span class="square sq-green"></span> Development Time</div>
+        <div class="legend-box"><span class="square sq-blue"></span> Drop Time</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="roastChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===================== Utils ===================== */
+    function formatTanggalJam(){
+      const d=new Date();
+      return {
+        tanggal: d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}),
+        jam: d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+      };
+    }
+
+    function initTempInputs(){
+      const tbody=document.getElementById('tempsBody'); tbody.innerHTML='';
+      for(let m=0;m<=20;m+=2){
+        const tr=document.createElement('tr');
+        tr.appendChild(makeTempCell(m));   tr.appendChild(makeInputCell(m));
+        tr.appendChild(makeTempCell(m+1)); tr.appendChild(makeInputCell(m+1));
+        tbody.appendChild(tr);
+      }
+    }
+    function makeTempCell(minute){ const td=document.createElement('td'); td.textContent=minute; return td; }
+    function makeInputCell(minute){
+      const td=document.createElement('td'); const inp=document.createElement('input');
+      inp.type='number'; inp.id='temp_'+minute; inp.min='80'; inp.max='250'; inp.step='50';
+      inp.placeholder='80–250 (step 50°C)'; inp.style.width='100%';
+      inp.addEventListener('input', renderDebounced);
+      td.appendChild(inp); return td;
+    }
+    function collectTempData(){
+      const data=[];
+      for(let m=0;m<=20;m++){
+        const el=document.getElementById('temp_'+m); if(!el) continue;
+        const val=el.value.trim(); if(val!==''){
+          const y=Number(val); if(isFinite(y)&&y>=80&&y<=250) data.push({x:m,y});
+        }
+      }
+      data.sort((a,b)=>a.x-b.x);
+      return data;
+    }
+
+    /* ================== Interpolasi ================== */
+    function interpolateTemp(t, points){
+      if(!points||points.length===0) return null;
+      for(const p of points){ if(Math.abs(p.x-t)<1e-9) return p.y; }
+      let lower=null, upper=null;
+      for(let i=0;i<points.length;i++){
+        const p=points[i];
+        if(p.x<t) lower=p;
+        if(p.x>t){ upper=p; break; }
+      }
+      if(!lower && !upper) return points[0].y;
+      if(!lower) return points[0].y;
+      if(!upper) return points[points.length-1].y;
+      const {x:x0,y:y0}=lower, {x:x1,y:y1}=upper;
+      if(x1===x0) return y0;
+      return y0+(y1-y0)*(t-x0)/(x1-x0);
+    }
+    function findTimeAtTemperature(targetTemp, points){
+      if(!points||points.length<2||targetTemp==null||!isFinite(targetTemp)) return null;
+      for(let i=0;i<points.length-1;i++){
+        const p0=points[i], p1=points[i+1];
+        const x0=p0.x,y0=p0.y, x1=p1.x,y1=p1.y;
+        const minY=Math.min(y0,y1)-1e-9, maxY=Math.max(y0,y1)+1e-9;
+        if(targetTemp<minY || targetTemp>maxY) continue;
+        if(Math.abs(y1-y0)<1e-9){ if(Math.abs(targetTemp-y0)<1e-9) return x0; continue; }
+        const t=x0+(targetTemp-y0)*(x1-x0)/(y1-y0);
+        if(t>=Math.min(x0,x1)-1e-9 && t<=Math.max(x0,x1)+1e-9) return t;
+      }
+      return null;
+    }
+
+    /* ===================== Chart ===================== */
+    let roastChart=null;
+
+    function buildOrUpdateChart(datasets){
+      const ctx=document.getElementById('roastChart').getContext('2d');
+
+      const baseOptions={
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true},
+          tooltip:{
+            enabled:true,
+            callbacks:{
+              label:(ctx)=>{
+                const dsLabel=ctx.dataset.label||'';
+                const x=ctx.parsed.x, y=ctx.parsed.y;
+                if(ctx.dataset.type==='line') return `Menit ${x} : ${y}°C`;
+                if(dsLabel==='Development Time'){
+                  const dev = window.__DEV_TIME__;
+                  return (dev!=null&&isFinite(dev)) ? `Development: ${dev.toFixed(2)} menit` : `Development belum dihitung`;
+                }
+                if(dsLabel==='Turning Point') return `Turning Point @ ${Number(x).toFixed(2)} menit : ${Number(y).toFixed(1)}°C`;
+                return `${dsLabel} @ ${x} menit : ${Number(y).toFixed(1)}°C`;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{type:'linear',title:{display:true,text:'Menit'},min:0,max:20,ticks:{stepSize:1}},
+          y:{title:{display:true,text:'Suhu (°C)'},min:80,max:250,ticks:{stepSize:50}}
+        }
+      };
+
+      if(roastChart){
+        roastChart.data.datasets = datasets;
+        roastChart.update();
+      }else{
+        roastChart=new Chart(ctx,{ data:{ datasets }, options: baseOptions });
+      }
+    }
+
+    function renderChart(tempData, tpTemp, fc, drop, dev, messages){
+      // Simpan dev untuk tooltip
+      window.__DEV_TIME__ = (isFinite(dev)?dev:null);
+
+      const lineData=tempData.map(d=>({x:d.x,y:d.y}));
+
+      const tpTime=(tpTemp!=null&&isFinite(tpTemp)) ? findTimeAtTemperature(tpTemp,tempData) : null;
+      const tpTimeEl=document.getElementById('tpTimeAuto');
+      if(tpTimeEl) tpTimeEl.value = (tpTime!=null&&isFinite(tpTime)) ? tpTime.toFixed(2)+' menit' : '';
+
+      const tpY=(tpTime!=null)?tpTemp:null;
+      const fcY=(isFinite(fc))?interpolateTemp(fc,tempData):null;
+      const dropY=(isFinite(drop))?interpolateTemp(drop,tempData):null;
+
+      const scatter=[];
+      if(tpTime!=null && tpY!=null){
+        scatter.push({type:'scatter',label:'Turning Point',data:[{x:tpTime,y:tpY}],
+          pointStyle:'rect',pointRadius:7,backgroundColor:'#dc2626',borderColor:'#dc2626',showLine:false});
+      }else if(tpTemp!=null&&isFinite(tpTemp)){
+        messages.push('Turning Point Temperature belum ditemukan pada kurva (periksa data suhu).');
+      }
+      if(isFinite(fc) && fcY!=null){
+        scatter.push({type:'scatter',label:'First Crack',data:[{x:fc,y:fcY}],
+          pointStyle:'rect',pointRadius:7,backgroundColor:'#f59e0b',borderColor:'#f59e0b',showLine:false});
+      }
+      if(isFinite(drop) && dropY!=null){
+        scatter.push({type:'scatter',label:'Development Time',data:[{x:drop,y:dropY+3}],
+          pointStyle:'rect',pointRadius:7,backgroundColor:'#16a34a',borderColor:'#16a34a',showLine:false});
+        scatter.push({type:'scatter',label:'Drop Time',data:[{x:drop,y:dropY}],
+          pointStyle:'rect',pointRadius:7,backgroundColor:'#2563eb',borderColor:'#2563eb',showLine:false});
+      }
+
+      const datasets=[
+        { type:'line', label:'Suhu (°C) per Menit', data: lineData, borderColor:'#111', backgroundColor:'#111',
+          tension:.25, borderWidth:2, pointRadius:3 },
+        ...scatter
+      ];
+      buildOrUpdateChart(datasets);
+    }
+
+    /* ================ Status / Validasi ringkas ================ */
+    function showStatus(messages){
+      const box=document.getElementById('statusMsg');
+      if(!messages||messages.length===0){ box.classList.remove('show'); box.textContent=''; return; }
+      box.innerHTML='Peringatan:\u00A0<ul style="margin:6px 0 0 18px;">'+messages.map(m=>`<li>${m}</li>`).join('')+'</ul>';
+      box.classList.add('show');
+    }
+
+    function render(){
+      const messages=[];
+      const tempData=collectTempData();
+
+      const tpTempRaw=document.getElementById('tpTemp').value;
+      const tpTemp=tpTempRaw===''?null:parseFloat(tpTempRaw);
+      const fcRaw=document.getElementById('fcTime').value;
+      const dropRaw=document.getElementById('dropTime').value;
+      const fc=fcRaw===''?null:parseFloat(fcRaw);
+      const drop=dropRaw===''?null:parseFloat(dropRaw);
+
+      if(tpTemp!=null && (!isFinite(tpTemp)||tpTemp<80||tpTemp>250)) messages.push('Turning Point Temperature harus 80–250°C.');
+      if(fc!=null && (!isFinite(fc)||fc<0||fc>20)) messages.push('First Crack Time harus 0–20 menit.');
+      if(drop!=null && (!isFinite(drop)||drop<0||drop>20)) messages.push('Drop Time harus 0–20 menit.');
+      if(isFinite(fc)&&isFinite(drop)&&drop<fc) messages.push('Drop Time harus ≥ First Crack Time.');
+
+      const dev=(isFinite(fc)&&isFinite(drop)&&drop>=fc)?(drop-fc):null;
+      document.getElementById('devTime').value=(dev!=null&&isFinite(dev))?dev.toFixed(2)+' menit':'';
+
+      // Render chart (selalu)
+      renderChart(tempData, (isFinite(tpTemp)?tpTemp:null), (isFinite(fc)?fc:null), (isFinite(drop)?drop:null), (isFinite(dev)?dev:null), messages);
+
+      if(tempData.length<1) messages.push('Belum ada titik suhu diinput. Isi suhu per menit agar kurva terlihat.');
+      showStatus(messages);
+    }
+
+    function debounce(fn, delay=80){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),delay); }; }
+    const renderDebounced=debounce(render,80);
+
+    /* ======================= Init ======================= */
+    window.addEventListener('DOMContentLoaded', ()=>{
+      const {tanggal,jam}=formatTanggalJam();
+      document.getElementById('tanggal').value=tanggal;
+      document.getElementById('jam').value=jam;
+      // Update jam tiap detik (opsional)
+      setInterval(()=>{ document.getElementById('jam').value=formatTanggalJam().jam; },1000);
+
+      initTempInputs();
+
+      // Auto-render pada input event
+      document.getElementById('tpTemp').addEventListener('input', renderDebounced);
+      document.getElementById('fcTime').addEventListener('input', renderDebounced);
+      document.getElementById('dropTime').addEventListener('input', renderDebounced);
+
+      // Reset & Cetak
+      document.getElementById('resetBtn').addEventListener('click', ()=>{
+        if(roastChart){ roastChart.destroy(); roastChart=null; }
+        showStatus([]);
+      });
+      document.getElementById('printBtn').addEventListener('click', ()=>{ window.print(); });
+
+      // Pastikan chart merespons ukuran cetak
+      window.addEventListener('beforeprint', ()=>{ if(roastChart) roastChart.resize(); });
+      window.addEventListener('afterprint',  ()=>{ if(roastChart) roastChart.resize(); });
+
+      render(); // render awal
+    });
+  </script>
+</body>
+</html>
