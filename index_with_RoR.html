@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fajri Roast Log V.1.1 (Meta Top-Center)</title>
+  <style>
+
+label, input, select, textarea {
+    color: navy;
+}
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    label { font-size: 0.9em; }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .meta-inputs {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .temperature-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 8px;
+    }
+    canvas {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #ccc;
+      background-color: #fff;
+    }
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    @media (min-width: 600px) {
+      .button-group {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Fajri Roast Log V.1.1</h1>
+
+  <form id="roastForm">
+    <!-- META (tetap di form, ditampilkan di atas-tengah grafik) -->
+    <div class="meta-inputs">
+      <label>Roast Master:
+        <input type="text" id="roastMaster" placeholder="Nama operator (mis. Fajari)">
+      </label>
+      <label>Roaster Machine:
+        <input type="text" id="roasterMachine" placeholder="Merek/Model mesin (mis. Huky 500)">
+      </label>
+      <label>Coffee:
+        <input type="text" id="coffeeName" placeholder="Origin/Varietas (mis. Gayo Natural)">
+      </label>
+      <label>Moisture Content (%):
+        <input type="number" id="moistureContent" min="0" max="30" step="0.1" placeholder="mis. 11.5">
+      </label>
+    </div>
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Start Roasting Stopwatch</title>
+  <style>
+    :root{
+      --bg: #0f1521;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #00d884;
+      --accent-2: #38bdf8;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans",
+                   "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% 10%, #121a2a 0%, var(--bg) 45%, #0b101a 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+    }
+
+    .app {
+      width: min(96vw, 860px);
+      display: grid;
+      gap: 20px;
+      justify-items: center;
+    }
+
+    h1 {
+      margin: 0 0 6px 0;
+      font-weight: 700;
+      letter-spacing: .2px;
+      text-align: center;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: .95rem;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0b141a;
+      cursor: pointer;
+      transition: transform .06s ease, box-shadow .2s ease, background-color .2s ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.07);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    button:active { transform: translateY(1px) scale(0.995); }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #00e699, #00c27d);
+      color: #062a1f;
+    }
+    .btn-primary:disabled {
+      background: linear-gradient(180deg, #8feccc, #7edbbf);
+      color: #285c4d;
+      cursor: not-allowed;
+      opacity: .85;
+    }
+
+    .btn-pause {
+      background: linear-gradient(180deg, #60a5fa, #3b82f6);
+      color: #071a33;
+    }
+    .btn-pause[aria-pressed="true"] {
+      /* mode Lanjutkan */
+      background: linear-gradient(180deg, #fb923c, #f97316);
+      color: #2d1505;
+    }
+
+    /* KOTAK STOPWATCH */
+    .timer-card {
+      width: 100%;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00)) , var(--card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: clamp(20px, 5vw, 36px);
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timer-card::after {
+      content: "";
+      position: absolute;
+      inset: -40% -20% auto auto;
+      width: 60%;
+      height: 160%;
+      background: radial-gradient(closest-side, rgba(0,216,132,.10), transparent 60%);
+      transform: rotate(18deg);
+      pointer-events: none;
+    }
+
+    .time {
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      letter-spacing: .5px;
+      /* Ukuran besar responsif */
+      font-size: clamp(40px, 10vw, 110px);
+      font-weight: 800;
+      color: #f8fafc;
+      text-shadow: 0 1px 0 rgba(255,255,255,.05), 0 10px 24px rgba(0,0,0,.35);
+      padding: clamp(14px, 2.5vw, 20px) clamp(18px, 3vw, 28px);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(56,189,248,.12), rgba(0,216,132,.12));
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .hints {
+      color: var(--muted);
+      font-size: .9rem;
+      text-align: center;
+    }
+
+    /* Sembunyikan stopwatch sebelum start */
+    .hidden { display: none; }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --text: #0b0f16;
+        --muted: #556070;
+      }
+      body { background: radial-gradient(1200px 800px at 20% 10%, #ffffff 0%, #f4f7fb 45%, #eaf0ff 100%); }
+      .time { color: #0b0f16; text-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" role="application" aria-label="Aplikasi Stopwatch Roasting">
+    <h1>Start Roasting Stopwatch</h1>
+    <p class="sub">Tekan <strong>Start Roasting</strong> untuk menampilkan stopwatch. </p>
+
+    <div class="controls">
+      <button id="startBtn" class="btn-primary" aria-controls="stopwatch" title="Mulai roasting sekarang">
+        🔥 Start Roasting
+      </button>
+      <!-- Tombol pause/resume akan tampil bersama stopwatch -->
+    </div>
+
+    <section id="stopwatch" class="timer-card hidden" aria-live="polite" aria-atomic="true">
+      <div id="timeDisplay" class="time" aria-label="Waktu berjalan">00:00:00.00</div>
+      <div class="controls"></div>
+      <div class="hints"> </div>
+    </section>
+  </main>
+
+  <script>
+    // Elemen
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopwatch = document.getElementById('stopwatch');
+    const timeDisplay = document.getElementById('timeDisplay');
+
+    // State waktu (dalam ms)
+    let running = false;     // apakah sedang berjalan
+    let startStamp = 0;      // waktu mulai (performance.now) saat terakhir start/resume
+    let elapsed = 0;         // akumulasi waktu yang sudah berlalu saat dijeda
+    let rafId = null;        // id requestAnimationFrame
+
+    // Format: HH:MM:SS.CS (CS = centiseconds / 1/100 detik)
+    function formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const s = totalSeconds % 60;
+    const m = Math.floor(totalSeconds / 60);
+    const pad2 = (n) => n.toString().padStart(2, '0');
+    return `${pad2(m)}:${pad2(s)}`;
+}
+
+    function update() {
+      const now = performance.now();
+      const total = elapsed + (now - startStamp);
+      timeDisplay.textContent = formatTime(total);
+      rafId = requestAnimationFrame(update);
+    }
+
+    function start() {
+      if (running) return;
+      // Tampilkan kotak stopwatch, disable tombol start
+      stopwatch.classList.remove('hidden');
+      startBtn.disabled = true;
+      startBtn.textContent = '🔥 Running…';
+      // Mulai
+      running = true;
+      startStamp = performance.now();
+      rafId = requestAnimationFrame(update);
+    }
+
+    function pauseOrResume() {
+      if (running) {
+        // PAUSE
+        running = false;
+        cancelAnimationFrame(rafId);
+        const now = performance.now();
+        elapsed += (now - startStamp);   // simpan akumulasi
+        // Ubah tombol ke "Lanjutkan"
+        pauseBtn.textContent = '▶️ Lanjutkan';
+        pauseBtn.setAttribute('aria-pressed', 'true');
+      } else {
+        // RESUME
+        running = true;
+        startStamp = performance.now();
+        pauseBtn.textContent = '⏸️ Pause';
+        pauseBtn.setAttribute('aria-pressed', 'false');
+        rafId = requestAnimationFrame(update);
+      }
+    }
+
+    // Event handlers
+    startBtn.addEventListener('click', start);
+    pauseBtn.addEventListener('click', pauseOrResume);
+
+    // Akses cepat via keyboard: Space untuk jeda/lanjut jika stopwatch sudah tampil
+    window.addEventListener('keydown', (e) => {
+      // Abaikan jika sedang mengetik di input
+      if (['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (stopwatch && !stopwatch.classList.contains('hidden')) {
+          pauseOrResume();
+        }
+      }
+    });
+
+    // Opsional: cegah jam "melompat" jika tab di-background terlalu lama.
+    // (Dengan performance.now + rAF, drift tetap minim dan halus untuk UI.)
+  </script>
+</body>
+
+    <label><strong>Input Suhu per Menit (80°C–250°C)</strong></label>
+    <div class="temperature-inputs" id="tempInputs"></div>
+
+    <!-- Suhu Awal (Charge) -->
+    <label>Suhu Awal (saat memasukkan biji ke drum):
+      <input type="number" id="initialTemp" min="80" max="250" step="1" placeholder="mis. 200">
+    </label>
+
+    <label>Suhu Turning Point:
+      <input type="number" id="turningPointTemp" min="80" max="250" placeholder="mis. 100">
+    </label>
+    <label>Suhu First Crack:
+      <input type="number" id="firstCrackTemp" min="80" max="250" placeholder="mis. 196">
+    </label>
+    <label>Suhu Second Crack (opsional):
+      <input type="number" id="secondCrackTemp" min="80" max="250" placeholder="mis. 210">
+    </label>
+    <label>Drop Time (menit, boleh desimal):
+      <input type="number" id="dropTime" min="1" max="20" step="0.1" placeholder="mis. 13.5 = 13m30s">
+    </label>
+    <label>Suhu Akhir Drop (opsional):
+      <input type="number" id="dropFinalTemp" min="80" max="250" step="1" placeholder="mis. 205">
+    </label>
+
+    <div class="button-group">
+      <button type="button" onclick="generateChart()">End Of Roast</button>
+    </div>
+  </form>
+
+  <canvas id="roastChart" width="1000" height="600"></canvas>
+
+  <script>
+    // ====== Input fields 1..20 minutes ======
+    const tempContainer = document.getElementById("tempInputs");
+    for (let i = 1; i <= 20; i++) {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.id = `minute${i}`;
+      input.placeholder = `${i}m`;
+      input.min = 80;
+      input.max = 250;
+      input.step = 1;
+      tempContainer.appendChild(input);
+    }
+
+    // ====== Helpers ======
+    function findClosestMinute(temps, targetTemp) {
+      if (!Number.isFinite(targetTemp)) return -1;
+      let closestMinute = -1, minDiff = Infinity;
+      for (let i = 1; i <= temps.length; i++) {
+        const t = temps[i - 1];
+        if (t != null) {
+          const diff = Math.abs(t - targetTemp);
+          if (diff < minDiff) { minDiff = diff; closestMinute = i; }
+        }
+      }
+      return closestMinute;
+    }
+
+    // Cari menit pecahan saat kurva melintasi targetTemp (interpolasi linear)
+    function findCrossingMinute(temps, targetTemp, lastMinute) {
+      if (!Number.isFinite(targetTemp)) return null;
+      const upper = Math.max(2, lastMinute);
+      for (let i = 1; i < upper; i++) {
+        const t1 = temps[i - 1], t2 = temps[i];
+        if (t1 == null || t2 == null) continue;
+        const minT = Math.min(t1, t2), maxT = Math.max(t1, t2);
+        if (targetTemp >= minT && targetTemp <= maxT && t2 !== t1) {
+          const ratio = (targetTemp - t1) / (t2 - t1);
+          return i + ratio; // di antara i dan i+1
+        }
+      }
+      return null;
+    }
+
+    // Suhu pada menit pecahan: interpolasi atau hold-last
+    function getTempAtMinuteExact(temps, minuteExact) {
+      if (!Number.isFinite(minuteExact)) return null;
+      if (minuteExact < 0 || minuteExact > 20) return null; // NOTE: izinkan 0 (Charge)
+
+      if (Number.isInteger(minuteExact)) {
+        if (minuteExact === 0) return null;
+        const t = temps[minuteExact - 1];
+        return t != null ? t : null;
+      }
+
+      const floorM = Math.floor(minuteExact);
+      const ceilM  = Math.ceil(minuteExact);
+
+      // prev known <= minuteExact (min 1)
+      let prev = null;
+      for (let m = Math.max(1, floorM); m >= 1; m--) {
+        if (temps[m - 1] != null) { prev = m; break; }
+      }
+      // next known >= minuteExact
+      let next = null;
+      for (let m = Math.max(1, ceilM); m <= 20; m++) {
+        if (temps[m - 1] != null) { next = m; break; }
+      }
+
+      if (prev != null && next != null && prev !== next) {
+        const tPrev = temps[prev - 1], tNext = temps[next - 1];
+        const ratio = (minuteExact - prev) / (next - prev);
+        return tPrev + (tNext - tPrev) * ratio;
+      } else if (prev != null) {
+        return temps[prev - 1];
+      } else if (next != null) {
+        return temps[next - 1];
+      }
+      return null;
+    }
+
+    function formatMinToMinSec(minVal) {
+      const totalSec = Math.max(0, Math.round(minVal * 60));
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${m}m ${s}s`;
+    }
+
+    function drawInfoBox(ctx, x, y, lines, align = "left") {
+      ctx.save();
+      ctx.font = "12px Arial";
+      let maxW = 0;
+      for (const line of lines) maxW = Math.max(maxW, ctx.measureText(line).width);
+      const padding = 8, lineH = 16;
+      const boxW = Math.ceil(maxW) + padding * 2;
+      const boxH = lines.length * lineH + padding * 2;
+
+      // Hitung posisi X berdasarkan align (left/center/right)
+      let boxX = x;
+      if (align === "center") boxX = x - boxW / 2;
+      else if (align === "right") boxX = x - boxW;
+
+      // Gambar box
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillRect(boxX, y, boxW, boxH);
+      ctx.strokeStyle = "#aaaaaa";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(boxX, y, boxW, boxH);
+
+      // Teks
+      ctx.fillStyle = "#111";
+      lines.forEach((line, i) => {
+        ctx.fillText(line, boxX + padding, y + padding + (i + 1) * lineH - 4);
+      });
+      ctx.restore();
+    }
+
+    // Mapping posisi
+    function mapTempToY(temp) {
+      return 550 - (temp - 80) * 2;
+    }
+    function mapMinuteToX(minuteExact) {
+      return 50 + minuteExact * 45; // menit 0 berada di sumbu Y (x=50)
+    }
+
+    // ====== Main draw ======
+    function generateChart() {
+      const canvas = document.getElementById("roastChart");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const PLOT_LEFT = 50, PLOT_RIGHT = 950, PLOT_TOP = 50, PLOT_BOTTOM = 550;
+
+      // --- Grid ---
+      ctx.strokeStyle = "#ddd";
+      ctx.lineWidth = 1;
+      ctx.font = "12px Arial";
+      ctx.fillStyle = "black";
+
+      // Grid vertikal (menit)
+      for (let i = 1; i <= 20; i++) {
+        const x = mapMinuteToX(i);
+        ctx.beginPath();
+        ctx.moveTo(x, PLOT_TOP);
+        ctx.lineTo(x, PLOT_BOTTOM);
+        ctx.stroke();
+        ctx.fillText(`${i}m`, x - 10, 570);
+      }
+      // Grid horizontal (suhu)
+      for (let t = 80; t <= 250; t += 10) {
+        const y = mapTempToY(t);
+        ctx.beginPath();
+        ctx.moveTo(PLOT_LEFT, y);
+        ctx.lineTo(PLOT_RIGHT, y);
+        ctx.stroke();
+        ctx.fillText(`${t}°C`, 10, y + 4);
+      }
+
+      // --- Data suhu 1..20 ---
+      const temps = new Array(20).fill(null);
+      // ====== Hitung RoR (Rate of Rise) ======
+      const ror = new Array(20).fill(null);
+      for (let i = 1; i < 20; i++) {
+        if (temps[i] != null && temps[i - 1] != null) {
+          ror[i] = temps[i] - temps[i - 1];
+        }
+      }
+
+      function mapRoRToY(r) {
+        const minRoR = -10;
+        const maxRoR = 30;
+        const normalized = (r - minRoR) / (maxRoR - minRoR);
+        return 550 - normalized * 500;
+      }
+
+      for (let i = 1; i <= 20; i++) {
+        const val = parseFloat(document.getElementById(`minute${i}`).value);
+        temps[i - 1] = Number.isFinite(val) ? val : null;
+      }
+
+      // --- Data meta & event ---
+      const roastMaster      = (document.getElementById("roastMaster").value || "").trim();
+      const roasterMachine   = (document.getElementById("roasterMachine").value || "").trim();
+      const coffeeName       = (document.getElementById("coffeeName").value || "").trim();
+      const moistureContent  = parseFloat(document.getElementById("moistureContent").value);
+
+      const initialTemp      = parseFloat(document.getElementById("initialTemp").value);
+      const turningPointTemp = parseFloat(document.getElementById("turningPointTemp").value);
+      const firstCrackTemp   = parseFloat(document.getElementById("firstCrackTemp").value);
+      const secondCrackTemp  = parseFloat(document.getElementById("secondCrackTemp").value);
+      const dropTimeInput    = parseFloat(document.getElementById("dropTime").value);
+      const dropFinalTemp    = parseFloat(document.getElementById("dropFinalTemp").value);
+
+      // Menit terakhir yang memiliki data
+      let lastMinute = -1;
+      for (let i = 20; i >= 1; i--) {
+        if (temps[i - 1] != null) { lastMinute = i; break; }
+      }
+
+      if (lastMinute === -1) {
+        ctx.font = "bold 14px Arial";
+        ctx.fillText("Masukkan data suhu untuk menampilkan kurva.", 60, 30);
+        return;
+      }
+
+      // --- Marker helpers ---
+      function drawMarkerAtMinute(minute, color, label) {
+        if (minute >= 1 && minute <= 20 && temps[minute - 1] != null) {
+          const t = temps[minute - 1];
+          const x = mapMinuteToX(minute);
+          const y = mapTempToY(t);
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, 6, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.fillStyle = "black";
+          ctx.fillText(label, x + 10, y);
+        }
+      }
+      function drawMarkerExact(minuteExact, tempVal, color, label) {
+        if (!Number.isFinite(minuteExact) || !Number.isFinite(tempVal)) return;
+        if (minuteExact < 0 || minuteExact > 20) return; // izinkan 0 (Charge)
+        const x = mapMinuteToX(minuteExact);
+        const y = mapTempToY(tempVal);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.fillText(label, x + 10, y);
+      }
+
+      // --- Garis dari Suhu Awal (menit 0) ke menit 1 (jika ada) + marker Charge ---
+      if (Number.isFinite(initialTemp) && temps[0] != null) {
+        const x0 = mapMinuteToX(0), y0 = mapTempToY(initialTemp);
+        const x1 = mapMinuteToX(1), y1 = mapTempToY(temps[0]);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        drawMarkerExact(0, initialTemp, "#0ea5e9", "Charge");
+      } else if (Number.isFinite(initialTemp)) {
+        drawMarkerExact(0, initialTemp, "#0ea5e9", "Charge");
+      }
+
+      // --- Kurva suhu (putus jika gap, stop di lastMinute) ---
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 2;
+      let hasPath = false;
+      for (let i = 1; i <= lastMinute; i++) {
+        const t = temps[i - 1];
+        if (t == null) {
+          if (hasPath) { ctx.stroke(); hasPath = false; }
+          continue;
+        }
+        const x = mapMinuteToX(i);
+        const y = mapTempToY(t);
+        if (!hasPath) { ctx.beginPath(); ctx.moveTo(x, y); hasPath = true; }
+        else { ctx.lineTo(x, y); }
+      }
+      if (hasPath) ctx.stroke();
+
+      // --- Hitung menit TP/FC/SC ---
+      const turningPoint = findClosestMinute(temps, turningPointTemp);
+      const secondCrack  = findClosestMinute(temps, secondCrackTemp);
+      let fcMinuteExact = null;
+      if (Number.isFinite(firstCrackTemp)) {
+        fcMinuteExact = findCrossingMinute(temps, firstCrackTemp, lastMinute);
+        if (fcMinuteExact == null) {
+          const fcNearest = findClosestMinute(temps, firstCrackTemp);
+          fcMinuteExact = (fcNearest >= 1) ? fcNearest : null;
+        }
+      }
+
+      // --- Drop time & suhu di titik drop ---
+      const dropTime = Number.isFinite(dropTimeInput) ? dropTimeInput : lastMinute;
+      let dropTempUsed = null;
+      let dropTempIsApprox = false;
+      if (Number.isFinite(dropFinalTemp) && dropFinalTemp >= 80 && dropFinalTemp <= 250) {
+        dropTempUsed = dropFinalTemp;
+      } else {
+        dropTempUsed = getTempAtMinuteExact(temps, dropTime);
+        dropTempIsApprox = (dropTempUsed != null);
+      }
+
+      // --- Gambar marker TP/FC/SC ---
+      if (turningPoint >= 1) drawMarkerAtMinute(turningPoint, "red",    "Turning Point");
+      if (Number.isFinite(firstCrackTemp) && fcMinuteExact != null)
+        drawMarkerExact(fcMinuteExact, firstCrackTemp, "orange", "First Crack");
+      if (secondCrack >= 1) drawMarkerAtMinute(secondCrack, "green", "Second Crack");
+
+      // --- Sambungkan kurva ke titik drop + marker drop ---
+      if (Number.isFinite(dropTime) && dropTempUsed != null) {
+        // cari anchor terakhir <= dropTime
+        let anchorMinute = null;
+        const startSearch = Math.min(lastMinute, Math.floor(dropTime));
+        for (let m = startSearch; m >= 1; m--) {
+          if (temps[m - 1] != null) { anchorMinute = m; break; }
+        }
+        if (anchorMinute != null) {
+          const x1 = mapMinuteToX(anchorMinute);
+          const y1 = mapTempToY(temps[anchorMinute - 1]);
+          const x2 = mapMinuteToX(dropTime);
+          const y2 = mapTempToY(dropTempUsed);
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        const dropLabel = `Drop Time (${formatMinToMinSec(dropTime)}, ${Math.round(dropTempUsed)}°C)`;
+        drawMarkerExact(dropTime, dropTempUsed, "blue", dropLabel);
+      }
+
+      // --- META di ATAS-TENGAH (dalam grafik) ---
+      const metaLines = [
+        `Roast Master: ${roastMaster || "—"}`,
+        `Roaster Machine: ${roasterMachine || "—"}`,
+        `Coffee: ${coffeeName || "—"}`,
+        `Moisture: ${Number.isFinite(moistureContent) ? moistureContent.toFixed(1) + "%" : "—"}`,
+      ];
+      const centerX = (PLOT_LEFT + PLOT_RIGHT) / 2; // tengah area plot
+      drawInfoBox(ctx, centerX, 12, metaLines, "center"); // y=12 agar di atas grid
+
+      // --- Info box kiri atas: event roasting (tanpa meta) ---
+      const chargeLabel = Number.isFinite(initialTemp)      ? `${Math.round(initialTemp)}°C`        : "—";
+      const tpLabel     = Number.isFinite(turningPointTemp) ? `${Math.round(turningPointTemp)}°C`   : "—";
+      const fcLabel     = Number.isFinite(firstCrackTemp)   ? `${Math.round(firstCrackTemp)}°C`     : "—";
+      const scLabel     = Number.isFinite(secondCrackTemp)  ? `${Math.round(secondCrackTemp)}°C`    : "—";
+      const dtLabel     = Number.isFinite(dropTime)         ? `${formatMinToMinSec(dropTime)}`      : "—";
+      let dropTLabel    = "—";
+      if (dropTempUsed != null) {
+        dropTLabel = `${dropTempIsApprox ? "≈ " : ""}${Math.round(dropTempUsed)}°C`;
+      }
+      drawInfoBox(ctx, 60, 20, [
+        `Suhu Awal (Charge): ${chargeLabel}`,
+        `Turning Point: ${tpLabel}`,
+        `First Crack: ${fcLabel}`,
+        `Second Crack: ${scLabel}`,
+        `Drop Time: ${dtLabel}`,
+        `Suhu Akhir Drop: ${dropTLabel}`,
+      ]);
+
+      
+      // ====== Kurva RoR ======
+      ctx.strokeStyle = "rgba(255,0,0,0.7)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+
+      let hasRoRPath = false;
+      for (let i = 1; i <= lastMinute; i++) {
+        const r = ror[i - 1];
+        if (r == null) {
+          if (hasRoRPath) { ctx.stroke(); hasRoRPath = false; }
+          continue;
+        }
+        const x = mapMinuteToX(i);
+        const y = mapRoRToY(r);
+        if (!hasRoRPath) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          hasRoRPath = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      if (hasRoRPath) ctx.stroke();
+      ctx.setLineDash([]);
+
+      // ====== Info RoR terakhir ======
+      let lastRoR = null;
+      for (let i = lastMinute - 1; i >= 1; i--) {
+        if (ror[i] != null) {
+          lastRoR = ror[i];
+          break;
+        }
+      }
+      if (lastRoR != null) {
+        drawInfoBox(ctx, 700, 500, [
+          `RoR (last): ${lastRoR.toFixed(1)} °C/min`
+        ]);
+      }
+
+// --- Development Time (DT) + Development Ratio (%) di kanan atas ---
+      if (Number.isFinite(dropTime) && fcMinuteExact != null && dropTime > fcMinuteExact) {
+        const devTimeMin = dropTime - fcMinuteExact;
+        const devRatio = devTimeMin / dropTime * 100;
+        const lines = [
+          `Development Time: ${formatMinToMinSec(devTimeMin)}`,
+          `Development Ratio: ${devRatio.toFixed(1)}%`,
+        ];
+
+        ctx.font = "bold 14px Arial";
+        let maxW = 0; lines.forEach(l => maxW = Math.max(maxW, ctx.measureText(l).width));
+        const padding = 6, lineH = 18;
+        const boxW = Math.ceil(maxW) + padding * 2;
+        const boxH = lines.length * lineH + padding * 2;
+        const boxX = PLOT_RIGHT - boxW; // sejajar tepi kanan grid
+        const boxY = 20;
+
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = "#aaaaaa";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        ctx.fillStyle = "black";
+        lines.forEach((l, i) => {
+          ctx.fillText(l, boxX + padding, boxY + padding + (i + 1) * lineH - 4);
+        });
+      }
+    }
+
+    function downloadChart() {
+      const canvas = document.getElementById("roastChart");
+      const link = document.createElement("a");
+      link.download = "coffee_roast_curve.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+  </script>
+</body>
+</html>
